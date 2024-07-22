@@ -1,0 +1,163 @@
+---
+title: "RDataSci_p2"
+author: "ChloeHui"
+date: "2024-07-22"
+output: html_document
+
+---
+
+# Skills Assessment on R for Data Science (Part 2)
+
+
+## Question 1
+**What is the relationship between continent and 'Energy use (kg of oil equivalent per capita)'?**
+
+```{r read_data_Q1, message=FALSE, warning=FALSE, results='hide'}
+# Load necessary libraries
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(shiny)
+
+# Read in the gapminder_clean.csv data as a tibble using read_csv
+data <- read_csv("gapminder_clean.csv")
+
+# Remove rows with missing values in the two specific columns
+data_Q1 <- data %>%
+  drop_na(`Energy use (kg of oil equivalent per capita)`, continent)
+```
+
+ANOVA (Analysis of Variance) is used here because the `continent` variable is categorical, and `Energy use (kg of oil equivalent per capita)` is quantitative. ANOVA helps determine if there are statistically significant differences in the mean energy use between the different continents by comparing the variance within each continent to the variance between continents.
+
+```{r show Q1results, eval=TRUE}
+# Perform ANOVA on the cleaned data
+anova_result_Q1 <- aov(`Energy use (kg of oil equivalent per capita)` ~ continent, data = data_Q1)
+
+# View the summary of the ANOVA result
+summary(anova_result_Q1)
+
+# Plot a boxplot showing the differences between the two variables and save it as a ggplot object
+p1 <- ggplot(data_Q1) +
+  aes(
+    x = continent,
+    y = `Energy use (kg of oil equivalent per capita)`
+  ) +
+  geom_boxplot(fill = "#4682B4") +
+  theme_minimal()
+
+# Convert the ggplot object to an interactive Plotly plot
+ggplotly(p1)
+```
+
+As the p-value of the ANOVA test is < 2e-16, this indicates that the null hypothesis can be rejected. The null hypothesis in this context states that there are no differences in the mean Energy use (kg of oil equivalent per capita) across different continent groups. Since the p-value is extremely small, we have strong evidence to conclude that there are statistically significant differences in average energy use between the continents.
+
+In other words, the categorical variable `continent` does have a significant effect on the quantitative variable `Energy use (kg of oil equivalent per capita)`. This means that the average energy use differs across continents.
+
+## Question 2
+**Is there a significant difference between Europe and Asia with respect to 'Imports of goods and services (% of GDP)' in the years after 1990?**
+
+In this analysis, ANOVA is used to compare the mean values of Imports of goods and services (% of GDP) between two continents, Europe and Asia. ANOVA is appropriate here because it allows us to test whether there are significant differences in the mean of a quantitative variable, `Imports of goods and services (% of GDP)` across different levels of a categorical variable, `continent`.
+
+```{r Q2, eval=TRUE}
+# Subset the data to include only Europe and Asia, and filter for years after 1990
+data_Q2 <- data %>%
+  filter(continent %in% c("Europe", "Asia")) %>%
+  filter(Year > 1990) %>% # Corrected to filter for all years after 1990
+  drop_na(`Imports of goods and services (% of GDP)`, continent) # Dropping rows with NA in relevant columns
+
+# Perform ANOVA to analyze the effect of continent on Imports of goods and services (% of GDP)
+correlations_Q2 <- aov(`Imports of goods and services (% of GDP)` ~ continent, data = data_Q2)
+
+# View the summary of the ANOVA result
+summary(correlations_Q2)
+
+# Plot a boxplot showing the differences between the two variables and save it as a ggplot object
+p2 <- ggplot(data_Q2) +
+  aes(
+    x = continent,
+    y = `Imports of goods and services (% of GDP)`
+  ) +
+  geom_boxplot(fill = "#4682B4") +
+  theme_minimal()
+
+# Convert the ggplot object to an interactive Plotly plot
+ggplotly(p2)
+```
+
+The p-value of the ANOVA test is 0.158. This p-value is greater than the typical significance level of 0.05. Therefore, we fail to reject the null hypothesis, which states that there is no significant difference in the `Imports of goods and services (% of GDP)` between Europe and Asia in the years after 1990. 
+
+The boxplot shows that the means of Imports of goods and services (% of GDP) are very similar between Europe and Asia. Specifically, the mean for Asia is 39.79%, while for Europe it is 37.79%.
+
+In conclusion, the large p-value suggests that there is no statistically significant difference in imports of goods and services between these two continents for the specified period.
+
+## Question 3
+**What is the country (or countries) that has the highest 'Population density (people per sq. km of land area)' across all years? (i.e., which country has the highest average ranking in this category across each time point in the dataset?)**
+
+```{r Q3, message=FALSE, warning=FALSE, results='hide'}
+# First, Group by `Country Name` and calculate the average population density for each year
+avg_density_by_country_year <- data %>%
+  group_by(`Country Name`, Year) %>%
+  summarize(avg_density = mean(`Population density (people per sq. km of land area)`, na.rm = TRUE))
+
+# Calculate the overall average population density for each country across all years
+avg_density_by_country <- avg_density_by_country_year %>%
+  group_by(`Country Name`) %>%
+  summarize(avg_density = mean(avg_density))
+```
+
+```{r Q3_ans, eval=TRUE}
+# Identify the country (or countries) with the highest average population density
+avg_density_by_country$`Country Name`[which.max(avg_density_by_country$avg_density)]
+
+# Plot a bar chart on the population density (people per sq. km of land area) across all years with the respective country name, and save it as a ggplot object
+p3 <- ggplot(avg_density_by_country) +
+  aes(x = `Country Name`, y = avg_density) +
+  geom_col(fill = "#112446") +
+  labs(
+    x = "Country Names",
+    y = "Overall average population density for each country across all years (people per sq. km of land area)"
+  ) +
+  theme_minimal()
+
+# Convert the ggplot object to an interactive Plotly plot
+ggplotly(p3)
+```
+
+So with the printed answer and bar chart, it also shows that Macao SAR, China has the highest population density (people per sq. km of land area across all years.
+
+## Question 4
+**What country (or countries) has shown the greatest increase in 'Life expectancy at birth, total (years)' between 1962 and 2007?**
+
+```{r Q4, message=FALSE, warning=FALSE, results='hide'}
+# Filter data for years 1962 and 2007
+data_Q4 <- data %>%
+  filter(Year %in% c(1962:2007)) %>%
+  select(`Life expectancy at birth, total (years)`, Year, `Country Name`) %>%
+  drop_na(`Life expectancy at birth, total (years)`, Year)
+
+# Calculate the change in life expectancy from 1962 to 2007 for each country
+change_in_life_expectancy <- data_Q4 %>%
+  group_by(`Country Name`) %>%
+  summarize(Changes = `Life expectancy at birth, total (years)`[Year == 2007] - `Life expectancy at birth, total (years)`[Year == 1962], ) %>%
+  arrange(desc(Changes)) # Arrange countries by highest increase
+```
+```{r Q4_ans, eval=TRUE}
+# Identify the country (or countries) with the highest average population density
+change_in_life_expectancy$`Country Name`[which.max(change_in_life_expectancy$Changes)]
+
+
+# Plot a bar chart on the increase in 'Life expectancy at birth, total (years)' with the respective country name, and save it as a ggplot object
+p4 <- ggplot(change_in_life_expectancy) +
+  aes(x = `Country Name`, y = Changes) +
+  geom_col(fill = "#112446") +
+  labs(
+    y = "Differences of life expectancy at birth from 1962 to 2007"
+  ) +
+  theme_minimal()
+
+# Convert the ggplot object to an interactive Plotly plot
+ggplotly(p4)
+```
+  
+So with the printed answer and bar chart, it also shows that Maldives has the greatest increase in 'Life expectancy at birth, total (years)' between 1962 and 2007.
+

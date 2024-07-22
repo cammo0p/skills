@@ -1,0 +1,129 @@
+---
+title: "RDataSci_p1"
+author: "ChloeHui"
+date: "2024-07-16"
+output: html_document
+---
+
+# Skills Assessment on R for Data Science (Part 1)
+
+
+## Question 1
+
+**Read in the gapminder_clean.csv data as a tibble using read_csv.**
+
+```{r read_data, message=FALSE, warning=FALSE, results='hide'}
+# Load necessary libraries
+library(tidyverse)
+library(ggplot2)
+
+# Read in the gapminder_clean.csv data as a tibble using read_csv
+data <- read_csv("gapminder_clean.csv")
+```
+
+## Question 2
+
+**Filter the data to include only rows where Year is 1962 and then make a scatter plot comparing 'CO2 emissions (metric tons per capita)' and gdpPercap for the filtered data.**
+
+```{r filter_and_plot, echo=TRUE, warning=FALSE}
+# Filter the data for the year 1962
+data1962 <- data %>%
+  filter(Year == 1962)
+
+# Create a scatter plot
+ggplot(data = data1962, aes(x = gdpPercap, y = `CO2 emissions (metric tons per capita)`)) +
+  geom_point() +
+  labs(
+    title = "CO2 Emissions vs GDP per Capita (1962)",
+    x = "GDP per Capita",
+    y = "CO2 emissions (metric tons per capita)"
+  )
+```
+
+## Question 3
+
+**On the filtered data, calculate the correlation of 'CO2 emissions (metric tons per capita)' and gdpPercap. What is the correlation and associated p value?**
+
+```{r corr_pvalue, echo=TRUE}
+# Calculate the correlation and p-value
+cor1962 <- cor.test(data1962$`CO2 emissions (metric tons per capita)`, data1962$gdpPercap, use = "complete.obs") # "complete.obs" is used to exclude rows where any of the variables involved have missing values.
+
+# Extract the correlation coefficient and p-value
+correlation_coefficient1962 <- cor1962$estimate
+p_value1962 <- cor1962$p.value
+```
+
+```{r print_corr_pvalue, echo=TRUE}
+# Print the results
+correlation_coefficient1962
+p_value1962
+```
+
+The answer for the correlation coefficient is 0.926. The correlation coefficient ranges from -1 to 1. A value of 0.926 indicates a very strong positive linear relationship between the two variables. This means that as the GDP per capita increases, the CO2 emissions per capita also tend to increase, and this relationship is strong.
+
+P-value is 1.129e-46, which is a very small number. The p-value measures the evidence against the null hypothesis, which in this case is that there is no correlation between the two variables (correlation coefficient is zero). A p-value this small (essentially zero) indicates that the observed correlation is highly statistically significant.
+
+## Question 4
+
+**On the unfiltered data, answer "In what year is the correlation between 'CO2 emissions (metric tons per capita)' and gdpPercap the strongest?" Filter the dataset to that year for the next step...**
+
+```{r compare_corr_byyear, echo=TRUE}
+# Calculate the correlation between 'CO2 emissions (metric tons per capita)' and 'gdpPercap' for each year.
+correlations_byyear <- data %>%
+  group_by(Year) %>% # The data is first grouped by year, and then the correlation is calculated for each group (year).
+  summarize(correlation = cor(`CO2 emissions (metric tons per capita)`, gdpPercap, use = "complete.obs")) # The summarize() function is used to create a summary dataframe with the correlation results for each year.
+
+# The table looks like this
+print(correlations_byyear)
+
+# Outputs the year with the highest correlation between 'CO2 emissions (metric tons per capita)' and 'gdpPercap'
+correlations_byyear %>%
+  filter(correlation == max(correlation)) # by using the filter() and max() functions.
+```
+
+The answer is 1967 is the year that has the highest correlation between 'CO2 emissions (metric tons per capita)' and gdpPercap.
+
+## Question 5
+
+**Using plotly, create an interactive scatter plot comparing 'CO2 emissions (metric tons per capita)' and gdpPercap, where the point size is determined by pop (population) and the color is determined by the continent. You can easily convert any ggplot plot to a plotly plot using the ggplotly() command.**
+
+```{r load_library, message=FALSE, warning=FALSE, results='hide'}
+# Load ggplot library
+library(ggplot2)
+
+# Load plotly library
+library(plotly)
+
+library(shiny)
+```
+
+```{r interative_plot, echo=TRUE, warning=FALSE}
+# Filter the data to include only rows where the Year is 1967.
+data1967 <- data %>%
+  filter(Year == 1967)
+
+# Create a ggplot object for the 1967 data.
+# First, filter out any rows where 'continent' is empty.
+p <- data1967 %>%
+  filter(!(continent %in% "")) %>%
+  ggplot() +
+  aes(
+    x = gdpPercap, # Set GDP per Capita as the x-axis
+    y = `CO2 emissions (metric tons per capita)`, # Set CO2 emissions as the y-axis
+    colour = continent, # Use continent to colour the points
+    size = pop # Use population to set the size of the points
+  ) +
+  geom_point() + # Add points to the plot
+  scale_color_hue(direction = 1) + # Adjust the color scale
+  theme_minimal() + # Use a minimal theme for the plot
+  labs(
+    title = "CO2 Emissions vs GDP per Capita (1967)", # Set the title of the plot
+    x = "GDP per Capita", # Set the x-axis label
+    y = "CO2 emissions (metric tons per capita)" # Set the y-axis label
+  )
+
+# Convert the ggplot object to an interactive Plotly plot
+ggplotly(p)
+```
+
+
